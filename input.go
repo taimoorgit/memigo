@@ -5,6 +5,15 @@ import (
 	"strings"
 )
 
+func validateKeyName(key string) error {
+	for _, char := range key {
+		if !(char >= 'a' && char <= 'z' || char >= 'A' && char <= 'Z' || char >= '0' && char <= '9' || char == '_' || char == '-') {
+			return fmt.Errorf("key contains invalid character: %q", char)
+		}
+	}
+	return nil
+}
+
 func runExpression(input string) ([]byte, error) {
 	parts := strings.Fields(input)
 	if len(parts) == 0 {
@@ -17,6 +26,11 @@ func runExpression(input string) ([]byte, error) {
 			return []byte{}, fmt.Errorf("invalid syntax for get: expected 'get <key>'")
 		}
 
+		err := validateKeyName(parts[1])
+		if err != nil {
+			return []byte{}, err
+		}
+
 		value, err := get(parts[1])
 		if err != nil {
 			return []byte{}, err
@@ -26,6 +40,11 @@ func runExpression(input string) ([]byte, error) {
 	case "set":
 		if len(parts) != 3 {
 			return []byte{}, fmt.Errorf("invalid syntax for set: expected 'set <key> <value>'")
+		}
+
+		err := validateKeyName(parts[1])
+		if err != nil {
+			return []byte{}, err
 		}
 
 		value := []byte(parts[2])

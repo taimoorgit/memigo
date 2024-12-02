@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"sort"
+)
 
 var data = make(map[string][]byte)
 
@@ -23,5 +26,6 @@ func list() []string {
 	for key := range data {
 		keys = append(keys, key)
 	}
+	sort.Strings(keys)
 	return keys
 }
