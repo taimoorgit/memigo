@@ -47,7 +47,11 @@ func handleConnection(conn net.Conn) {
 		}
 		log.Info().Str("remote_addr", conn.RemoteAddr().String()).Str("message", message).Msg("Received message")
 
-		response := "Message received: " + message
-		conn.Write([]byte(response))
+		res, err := runExpression(message)
+		if err != nil {
+			log.Error().Str("remote_addr", conn.RemoteAddr().String()).Err(err).Msg("Error trying to run expression")
+		}
+
+		conn.Write(res)
 	}
 }
