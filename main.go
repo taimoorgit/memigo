@@ -1,12 +1,11 @@
 package main
 
 import (
-	"bufio"
-	"net"
 	"os"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"github.com/taimoorgit/memigo/common"
 )
 
 func main() {
@@ -14,44 +13,12 @@ func main() {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 	log.Info().Msg("Starting server...")
 
-	// Start listening on TCP port
-	listener, err := net.Listen("tcp", ":8080")
+	logFile, err := os.OpenFile("replication_log.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to start server")
+		log.Fatal().Err(err).Msg("Failed to open replication log file")
 	}
-	defer listener.Close()
-	log.Info().Msg("Server listening on port 8080")
+	defer logFile.Close()
+	store := common.NewStore(logFile)
 
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to accept connection")
-			continue
-		}
-		log.Info().Str("remote_addr", conn.RemoteAddr().String()).Msg("New connection accepted")
-
-		go handleConnection(conn)
-	}
-}
-
-func handleConnection(conn net.Conn) {
-	defer conn.Close()
-	log.Info().Str("remote_addr", conn.RemoteAddr().String()).Msg("Handling connection")
-
-	reader := bufio.NewReader(conn)
-	for {
-		message, err := reader.ReadString('\n')
-		if err != nil {
-			log.Warn().Str("remote_addr", conn.RemoteAddr().String()).Err(err).Msg("Connection closed or error reading")
-			return
-		}
-		log.Info().Str("remote_addr", conn.RemoteAddr().String()).Str("message", message).Msg("Received message")
-
-		res, err := runExpression(message)
-		if err != nil {
-			log.Error().Str("remote_addr", conn.RemoteAddr().String()).Err(err).Msg("Error trying to run expression")
-		}
-
-		conn.Write(res)
-	}
+	common.StartListener(store)
 }

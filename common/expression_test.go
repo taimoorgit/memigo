@@ -1,4 +1,4 @@
-package main
+package common
 
 import (
 	"bytes"
@@ -15,6 +15,7 @@ func TestRunExpression(t *testing.T) {
 		expectedOutput []byte
 		expectedError  string
 		finalStore     map[string][]byte
+		finalLog       string
 	}{
 		{
 			name:           "Set a key-value pair",
@@ -23,6 +24,7 @@ func TestRunExpression(t *testing.T) {
 			expectedOutput: nil,
 			expectedError:  "",
 			finalStore:     map[string][]byte{"key1": []byte("value1")},
+			finalLog:       "set key1 value1\n",
 		},
 		{
 			name:           "Set a key-value pair (bad key name)",
@@ -31,6 +33,7 @@ func TestRunExpression(t *testing.T) {
 			expectedOutput: nil,
 			expectedError:  "key contains invalid character",
 			finalStore:     map[string][]byte{},
+			finalLog:       "",
 		},
 		{
 			name:           "Get an existing key",
@@ -39,6 +42,7 @@ func TestRunExpression(t *testing.T) {
 			expectedOutput: []byte("value1"),
 			expectedError:  "",
 			finalStore:     map[string][]byte{"key1": []byte("value1")},
+			finalLog:       "",
 		},
 		{
 			name:           "Get an existing key (bad key name)",
@@ -47,6 +51,7 @@ func TestRunExpression(t *testing.T) {
 			expectedOutput: nil,
 			expectedError:  "key contains invalid character",
 			finalStore:     map[string][]byte{},
+			finalLog:       "",
 		},
 		{
 			name:           "Get a non-existent key",
@@ -55,6 +60,7 @@ func TestRunExpression(t *testing.T) {
 			expectedOutput: nil,
 			expectedError:  "key not found: key2",
 			finalStore:     map[string][]byte{},
+			finalLog:       "",
 		},
 		{
 			name:           "List keys",
@@ -63,6 +69,7 @@ func TestRunExpression(t *testing.T) {
 			expectedOutput: []byte("key1, key2"),
 			expectedError:  "",
 			finalStore:     map[string][]byte{"key1": []byte("value1"), "key2": []byte("value2")},
+			finalLog:       "",
 		},
 		{
 			name:           "Invalid syntax for set",
@@ -71,6 +78,7 @@ func TestRunExpression(t *testing.T) {
 			expectedOutput: nil,
 			expectedError:  "invalid syntax for set",
 			finalStore:     map[string][]byte{},
+			finalLog:       "",
 		},
 		{
 			name:           "Unknown command",
@@ -79,21 +87,21 @@ func TestRunExpression(t *testing.T) {
 			expectedOutput: nil,
 			expectedError:  "unknown command: 'unknown'",
 			finalStore:     map[string][]byte{},
+			finalLog:       "",
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			// Reset the store for each test
-			data = make(map[string][]byte)
+			var buffer bytes.Buffer
+			store := NewStore(&buffer)
 			for key, value := range tc.initialStore {
-				data[key] = value
+				store.data[key] = value
 			}
 
-			// Execute the function
-			output, err := runExpression(tc.input)
+			output, err := runExpression(tc.input, store)
 
-			// Check for expected error
 			if tc.expectedError != "" {
 				if err == nil || !strings.Contains(err.Error(), tc.expectedError) {
 					t.Fatalf("expected error: %q, got: %v", tc.expectedError, err)
@@ -102,14 +110,16 @@ func TestRunExpression(t *testing.T) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			// Check for expected output
 			if !bytes.Equal(output, tc.expectedOutput) {
 				t.Errorf("expected output: %q, got: %q", tc.expectedOutput, output)
 			}
 
-			// Use reflect.DeepEqual for final store comparison
-			if !reflect.DeepEqual(data, tc.finalStore) {
-				t.Errorf("expected final store: %v, got: %v", tc.finalStore, data)
+			if actual := buffer.String(); actual != tc.finalLog {
+				t.Errorf("expected final log: %v, got: %v", tc.finalLog, actual)
+			}
+
+			if !reflect.DeepEqual(store.data, tc.finalStore) {
+				t.Errorf("expected final store: %v, got: %v", tc.finalStore, store.data)
 			}
 		})
 	}

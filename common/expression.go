@@ -1,4 +1,4 @@
-package main
+package common
 
 import (
 	"fmt"
@@ -14,7 +14,7 @@ func validateKeyName(key string) error {
 	return nil
 }
 
-func runExpression(input string) ([]byte, error) {
+func runExpression(input string, store *Store) ([]byte, error) {
 	parts := strings.Fields(input)
 	if len(parts) == 0 {
 		return []byte{}, fmt.Errorf("empty command")
@@ -31,7 +31,7 @@ func runExpression(input string) ([]byte, error) {
 			return []byte{}, err
 		}
 
-		value, err := get(parts[1])
+		value, err := store.GetKey(parts[1])
 		if err != nil {
 			return []byte{}, err
 		}
@@ -47,8 +47,12 @@ func runExpression(input string) ([]byte, error) {
 			return []byte{}, err
 		}
 
+		// TODO: currently, set can fail if could not write to binary log
 		value := []byte(parts[2])
-		set(parts[1], value)
+		err = store.SetKey(parts[1], value)
+		if err != nil {
+			return []byte{}, err
+		}
 
 		return []byte{}, nil
 	case "list":
@@ -56,7 +60,7 @@ func runExpression(input string) ([]byte, error) {
 			return []byte{}, fmt.Errorf("invalid syntax for list: expected 'list'")
 		}
 
-		keys := list()
+		keys := store.ListKeys()
 
 		return []byte(strings.Join(keys, ", ")), nil
 	default:
