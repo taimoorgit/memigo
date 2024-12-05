@@ -47,12 +47,8 @@ func runExpression(input string, store *Store) ([]byte, error) {
 			return []byte{}, err
 		}
 
-		// TODO: currently, set can fail if could not write to binary log
 		value := []byte(parts[2])
-		err = store.SetKey(parts[1], value)
-		if err != nil {
-			return []byte{}, err
-		}
+		store.SetKey(parts[1], value)
 
 		return []byte{}, nil
 	case "list":

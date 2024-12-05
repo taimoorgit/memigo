@@ -7,35 +7,24 @@ import (
 	"sync"
 )
 
-type Logger struct {
-	mu     sync.Mutex
-	writer io.Writer
-}
-
 type Store struct {
-	data   map[string][]byte
-	logger Logger
+	mu   sync.RWMutex
+	data map[string][]byte
+	log  io.Writer
 }
 
 func NewStore(w io.Writer) *Store {
 	store := Store{
-		logger: Logger{
-			writer: w,
-		},
+		data: make(map[string][]byte),
+		log:  w,
 	}
-
-	store.data = make(map[string][]byte)
-
 	return &store
 }
 
-func (s *Store) AppendLog(message string) {
-	s.logger.mu.Lock()
-	defer s.logger.mu.Unlock()
-	fmt.Fprintln(s.logger.writer, message)
-}
-
 func (s *Store) GetKey(key string) ([]byte, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
 	value, ok := s.data[key]
 
 	if !ok {
@@ -45,19 +34,28 @@ func (s *Store) GetKey(key string) ([]byte, error) {
 	return value, nil
 }
 
-func (s *Store) SetKey(key string, value []byte) error {
-	s.AppendLog(fmt.Sprintf("set %s %s", key, value))
+// TODO: how do we non-string binary data like files
+func (s *Store) SetKey(key string, value []byte) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	s.data[key] = value
 
-	return nil
+	logMessage := fmt.Sprintf("set %s %s\n", key, value)
+	s.log.Write([]byte(logMessage))
 }
 
 func (s *Store) ListKeys() []string {
-	keys := []string{}
+	s.mu.RLock()
+
+	keys := make([]string, len(s.data))
+	i := 0
 	for key := range s.data {
-		keys = append(keys, key)
+		keys[i] = key
+		i++
 	}
+	s.mu.RUnlock()
+
 	sort.Strings(keys)
 	return keys
 }
