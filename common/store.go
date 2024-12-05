@@ -34,15 +34,13 @@ func (s *Store) GetKey(key string) ([]byte, error) {
 	return value, nil
 }
 
-// TODO: how do we non-string binary data like files
 func (s *Store) SetKey(key string, value []byte) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	s.data[key] = value
 
-	logMessage := fmt.Sprintf("set %s %s\n", key, value)
-	s.log.Write([]byte(logMessage))
+	fmt.Fprintf(s.log, "set %s %s\n", key, value)
 }
 
 func (s *Store) ListKeys() []string {

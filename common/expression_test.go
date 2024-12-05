@@ -18,13 +18,22 @@ func TestRunExpression(t *testing.T) {
 		finalLog       string
 	}{
 		{
-			name:           "Set a key-value pair",
+			name:           "Set a key-value pair (simple string data)",
 			input:          "set key1 value1",
 			initialStore:   map[string][]byte{},
 			expectedOutput: nil,
 			expectedError:  "",
 			finalStore:     map[string][]byte{"key1": []byte("value1")},
 			finalLog:       "set key1 value1\n",
+		},
+		{
+			name:           "Set a key-value pair (base64 encoded data)",
+			input:          "set key1 aGVsbG8gd29ybGQ=",
+			initialStore:   map[string][]byte{},
+			expectedOutput: nil,
+			expectedError:  "",
+			finalStore:     map[string][]byte{"key1": []byte("aGVsbG8gd29ybGQ=")},
+			finalLog:       "set key1 aGVsbG8gd29ybGQ=\n",
 		},
 		{
 			name:           "Set a key-value pair (bad key name)",
